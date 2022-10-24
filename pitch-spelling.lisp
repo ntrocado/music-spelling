@@ -43,7 +43,7 @@
 	      octave))))
 
 (defun rest-p (x)
-  (eql x 'rest))
+  (eql x :rest))
 
 (defun letter-value (letter)
   (case letter
@@ -143,7 +143,7 @@
 
 (defun possible-spellings (midi-note-number)
   (if (rest-p midi-note-number)
-      (list 'rest)
+      (list :rest)
       (let ((octave (1- (floor (/ midi-note-number 12)))))
 	(flet ((make-note (letter accidental)
 		 (make-instance 'note :letter letter :octave octave :accidental accidental)))
@@ -248,7 +248,7 @@
 
 ;; TODO avoid mixing accidentals
 (defun score-spelling (notes best-score-so-far)
-  (count-penalties (coerce (remove 'rest notes) 'vector) best-score-so-far))
+  (count-penalties (coerce (remove :rest notes) 'vector) best-score-so-far))
 
 ;; TODO needs a more efficient algorithm. maybe
 (defun pitch-spell (midi-note-numbers)
