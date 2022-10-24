@@ -58,9 +58,8 @@
 	    :while (< acc d))))
 
 (defun ties (p d tie-from beats-per-bar offset)
-  (format nil "~a~@[~a~]~a"
-	  (rhythm-spell (list p) (list tie-from) beats-per-bar offset)
-	  (when (not (rest-p p)) "~")
+  (append (rhythm-spell (list p) (list tie-from) beats-per-bar offset)
+	  (when (not (rest-p p)) (list :tie))
 	  (rhythm-spell (list p) (list (- d tie-from)) beats-per-bar (+ offset tie-from))))
 
 (defun min-subdivision-quantize (d subdivision)
@@ -72,58 +71,55 @@
 
 (defun rhythm-spell (pitches durations
 		     &optional (beats-per-bar 4) (offset 0) (min-subdivision 1/32))
-  (warn "Doesn't work. See TODO.")
-  (with-output-to-string (out)
-    (loop :for p :in pitches
-	  :for d :in (mapcar (lambda (x)
-			       (min-subdivision-quantize x min-subdivision))
-			     durations)
-	  :for end := d :then (+ end d)
-	  :for onset := offset :then (+ offset (- end d))
-	  :do (multiple-value-bind (int-part frac-part)
-		  (int-frac d)
-		
-		(alexandria:if-let (post-half-bar (post-half-bar d onset beats-per-bar))
-		  (princ (ties p d (- d post-half-bar) beats-per-bar onset)
-			 out)
+  (loop :with result
+	:for p :in pitches
+	:for d :in (mapcar (lambda (x)
+			     (min-subdivision-quantize x min-subdivision))
+			   durations)
+	:for end := d :then (+ end d)
+	:for onset := offset :then (+ offset (- end d))
+	:do (multiple-value-bind (int-part frac-part)
+		(int-frac d)
+	      
+	      (alexandria:if-let (post-half-bar (post-half-bar d onset beats-per-bar))
+		(push (ties p d (- d post-half-bar) beats-per-bar onset)
+		      result)
 
-		  (cond
-		    ;; crosses bars
-		    ((crosses-bars-p d onset beats-per-bar)
-		     (princ (ties p d (rest-of-bar onset) beats-per-bar onset)
-			    out))
+		(cond
+		  ;; crosses bars
+		  ((crosses-bars-p d onset beats-per-bar)
+		   (push (ties p d (rest-of-bar onset) beats-per-bar onset)
+			 result))
 
-		    ;; dots
-		    ((and (dots int-part frac-part)
-			  (or (not (rest-p p))
-			      (< d 1))
-			  (not (and (< d 1) (crosses-beats-p d onset))))
-		     (format out "~a~a"
-			     (rhythm-spell (list p) (list int-part) beats-per-bar)
-			     (make-string (dots int-part frac-part) :initial-element #\.)))
+		  ;; dots
+		  ((and (dots int-part frac-part)
+			(or (not (rest-p p))
+			    (< d 1))
+			(not (and (< d 1) (crosses-beats-p d onset))))
+		   (push (append (rhythm-spell (list p) (list int-part) beats-per-bar)
+				 (make-list (dots int-part frac-part)
+					    :initial-element :dot))
+			 result))
 
-		    ;; ties across beats
-		    ((and (crosses-beats-p d onset)
-			  (<= (metric-subdivision (nth-value 1 (truncate onset)))
-			      (min (/ d 2) 1))
-			  (not (and (= d 1) (zerop (mod end .5))))
-			  (not (and (zerop frac-part) (> d 1))))
-		     (princ (ties p d (rest-of-beat onset) beats-per-bar onset)
-			    out))
+		  ;; ties across beats
+		  ((and (crosses-beats-p d onset)
+			(<= (metric-subdivision (nth-value 1 (truncate onset)))
+			    (min (/ d 2) 1))
+			(not (and (= d 1) (zerop (mod end .5))))
+			(not (and (zerop frac-part) (> d 1))))
+		   (push (ties p d (rest-of-beat onset) beats-per-bar onset)
+			 result))
 
-		    ;; other ties
-		    ((plusp frac-part)
-		     (princ (ties p d int-part beats-per-bar offset)
-			    out))
+		  ;; other ties
+		  ((plusp frac-part)
+		   (push (ties p d int-part beats-per-bar offset)
+			 result))
 
-		    ;; print note
-		    ((zerop frac-part)
-		     (format out " ~a~a"
-			     ;; TODO move ly code from variatio to new library
-			     ;; (variatio:note->ly-pitch p)
-			     p
-			     (cond ((= d 8) "\\longa")
-				   ((= d 16) "\\breve")
-				   (t (/ 4 int-part)))))
-			
-		    (t (error "Can't spell ~a." d))))))))
+		  ;; print note
+		  ((zerop frac-part)
+		   (push (list p (/ 4 int-part))
+			 result)
+		  
+		   (t (error "Can't spell ~a." d)))))
+	      
+	:finally (return (alexandria:flatten (nreverse result)))))
