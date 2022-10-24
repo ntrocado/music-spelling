@@ -1,0 +1,7 @@
+* Music spelling
+A Common Lisp library for dealing with enharmonic pitches and notating rhythms with dots, ties, and beams.
+
+*This is a work in progress.*
+
+* Author
+[[https://nunotrocado.com][Nuno Trocado]]
