@@ -118,8 +118,8 @@
 		  ;; print note
 		  ((zerop frac-part)
 		   (push (list p (/ 4 int-part))
-			 result)
+			 result))
 		  
-		   (t (error "Can't spell ~a." d)))))
+		  (t (error "Can't spell ~a." d))))
 	      
-	:finally (return (alexandria:flatten (nreverse result)))))
+	:finally (return (alexandria:flatten (nreverse result))))))
