@@ -3,5 +3,14 @@ A Common Lisp library for dealing with enharmonic pitches and notating rhythms w
 
 *This is a work in progress.*
 
+* TODO
+** pitches
+- algorithm for chords
+- parsimony + penalty for respelling
+- segmentation
+** rhythms
+- tuplets
+- compound time
+
 * Author
 [[https://nunotrocado.com][Nuno Trocado]]
