@@ -250,22 +250,34 @@
 (defun score-spelling (notes best-score-so-far)
   (count-penalties (coerce (remove :rest notes) 'vector) best-score-so-far))
 
-;; TODO needs a more efficient algorithm. maybe
+;; TODO could be faster with vectors
+(defun map-product (function list &rest more-lists)
+  "Non-collecting version of the function in Alexandria."
+  (labels ((%map-product (f lists)
+             (let ((more (cdr lists))
+                   (one (car lists)))
+               (if (not more)
+                   (mapcar f one)
+                   (mapc (lambda (x)
+                              (%map-product (alexandria:curry f x) more))
+                            one)))))
+    (%map-product (alexandria:ensure-function function) (cons list more-lists))))
+
 (defun pitch-spell (midi-note-numbers)
   (if (= 1 (length midi-note-numbers))
       (list (first (possible-spellings (car midi-note-numbers))))
-      (loop :with best-score-so-far := 1000
-	    :with result
-	    :for try :in (apply #'alexandria:map-product
-				#'list
-				(mapcar #'possible-spellings midi-note-numbers))
-	    :for score := (score-spelling try best-score-so-far)
-	    :when (< score best-score-so-far)
-	      :do (setf best-score-so-far score)
-	      :and :do (setf result try)
-	    :finally (return result))))
+      (let ((best-score 1000)
+	    (best-solution nil))
+	(apply #'map-product (lambda (&rest vals)
+			       (let ((score (score-spelling vals best-score)))
+				 (when (< score best-score)
+				   (setf best-solution vals
+					 best-score score))))
+	       (mapcar #'possible-spellings midi-note-numbers))
+	(values best-solution best-score))))
 
-
+(defun pitch-spell-chords (chord-seq)
+  (mapcar #'pitch-spell chord-seq))
 
 ;; Cheat by spliting the input list in two
 (defun pitch-spell-split (midi-note-numbers &optional (len 8))
