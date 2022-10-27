@@ -6,7 +6,8 @@
 	   octave
 	   rest-p
 	   pitch-spell
-	   pitch-spell-split))
+	   pitch-spell-split
+	   pitch-spell-chords))
 
 (defpackage #:rhythm-spelling
   (:use #:cl)
