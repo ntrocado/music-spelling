@@ -221,16 +221,30 @@
 	  notes)
     ht))
 
-(defparameter *default-penalties* (make-hash-table))
+(defun make-default-penalties ()
+  (let ((ht (make-hash-table)))
+    (setf (gethash :accidentals ht) 1.0
+	  (gethash :double-accidentals ht) 2.5
+	  (gethash :parsimony ht) 1.2
+	  (gethash :direction ht) 1.6
+	  (gethash :diminished ht) 1.5
+	  (gethash :augmented ht) 1.4
+	  (gethash :other-intervals ht) 8.0
+	  (gethash :e#-fb-b#-cb ht) .5)
+    ht))
 
-(setf (gethash :accidentals *default-penalties*) 1.0
-      (gethash :double-accidentals *default-penalties*) 2.5
-      (gethash :parsimony *default-penalties*) 1.2
-      (gethash :direction *default-penalties*) 1.6
-      (gethash :diminished *default-penalties*) 1.5
-      (gethash :augmented *default-penalties*) 1.4
-      (gethash :other-intervals *default-penalties*) 8.0
-      (gethash :e#-fb-b#-cb *default-penalties*) .5)
+(defparameter *default-penalties* (make-default-penalties))
+
+(defun make-chord-penalties ()
+  (let ((ht (alexandria:copy-hash-table *default-penalties*)))
+    (setf (gethash :direction ht) 0.0
+	  (gethash :diminished ht) 1.0
+	  (gethash :augmented ht) 1.0
+	  (gethash :penalties ht) 1.1)
+    ht))
+
+(defparameter *chord-penalties* (make-chord-penalties)
+  "Penalties used when spelling chords.")
 
 (defun count-penalties (notes-vec best-score-so-far
 			&optional (penalties *default-penalties*)
@@ -332,13 +346,13 @@
 	       (mapcar #'possible-spellings midi-note-numbers))
 	(values best-solution best-score))))
 
-(defun pitch-spell-chords (chord-seq)
-  (let ((options (alexandria:copy-hash-table *default-penalties*)))
-    (setf (gethash :direction options) 0
-	  (gethash :diminished options) .2
-	  (gethash :augmented options) .2
-	  (gethash :parsimony options) 5)
-    (mapcar (alexandria:rcurry #'%pitch-spell options) chord-seq)))
+
+(defun make-natural-parsimony ()
+    (let ((ht (make-hash-table :size 7)))
+      (loop :for ch :across "abcdefg" :do (setf (gethash ch ht)	:natural))
+      ht))
+
+(defparameter *natural-parsimony* (make-natural-parsimony))
 
 (defun pitch-spell (midi-note-numbers
 		    &key (split 10)
