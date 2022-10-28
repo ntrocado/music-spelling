@@ -246,11 +246,13 @@
 	:when (>= penalty best-score-so-far) :do (return penalty)
 	  :finally (return penalty)))
 
-;; TODO avoid mixing accidentals
-(defun score-spelling (notes best-score-so-far)
-  (count-penalties (coerce (remove :rest notes) 'vector) best-score-so-far))
-
 ;; TODO could be faster with vectors
+;; TODO avoid mixing accidentals (maybe covered by other constrains already)
+(defun score-spelling (notes best-score-so-far penalties parsimony)
+  (count-penalties (coerce (delete :rest notes) 'vector)
+		   best-score-so-far
+		   penalties
+		   parsimony))
 (defun map-product (function list &rest more-lists)
   "Non-collecting version of the function in Alexandria."
   (labels ((%map-product (f lists)
