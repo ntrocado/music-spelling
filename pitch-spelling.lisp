@@ -214,7 +214,8 @@
 	    (progn (setf (gethash (letter note) ht) (accidental note))
 		   nil)))))
 
-(defun make-parsimony-ht (notes)
+(defun make-parsimony-ht-from-notes (notes)
+  "Returns a parsimony hash table produced from the accidentals in the list of `note' objects NOTES."
   (let ((ht (make-hash-table :size 7)))
     (mapc (lambda (note)
 	    (setf (gethash (letter note) ht) (accidental note)))
@@ -354,17 +355,72 @@
 
 (defparameter *natural-parsimony* (make-natural-parsimony))
 
+
+(defun make-penalties (accidentals augmented diminished direction double-accidentals
+		       e#-fb-b#-cb other-intervals parsimony)
+  "Returns a hash table with the following cumulative penalties used in pitch scoring:
+
+ACCIDENTALS: note is sharp or flat;
+AUGMENTED: augmented interval between two consecutive notes;
+DIMINISHED: diminished interval between two consecutive notes;
+DIRECTION: ascending with flats or descending with sharps;
+DOUBLE-ACCIDENTALS: note is double sharp or double flat;
+E#-Fb-B#-Cb: specific penalty for these spellings;
+OTHER-INTERVALS: intervals between two consecutive notes other than major, minor, perfect, augmented or diminished (e.g. doubly augmented interval);
+PARSIMONY: occurrence of an accidental different from previous used ones (or pre-defined on a given parsimony table).
+
+Penalty values must be single floats. They are summed when scoring each spelling try. A lower score is better."
+  
+  (let ((ht (make-hash-table :size 8)))
+    (setf (gethash :accidentals ht) accidentals
+	  (gethash :double-accidentals ht) double-accidentals
+	  (gethash :parsimony ht) parsimony
+	  (gethash :direction ht) direction
+	  (gethash :diminished ht) diminished
+	  (gethash :augmented ht) augmented
+	  (gethash :other-intervals ht) other-intervals
+	  (gethash :e#-fb-b#-cb ht) e#-fb-b#-cb)
+    ht))
+
+(defun pitch-spell-chords (chord-seq
+			   &key (penalties *chord-penalties*)
+			     (parsimony *natural-parsimony*))
+  "Spell chords in CHORD-SEQ, a list of chords, where each chord is a list of midi note values, returning a similarly structured list with the values replaced by `note' objects.
+PENALTIES is a hash table with the penalty values for various situations, summed when scoring spelling tries (see `make-penalties'). PARSIMONY is a hash table with the chars for the letters from 'a' to 'g' as keys and their preferred initial spelling (:natural, :sharp, :flat, etc.) as values.
+
+Example:
+(pitch-spell-chords '((60 64 67) (61 65 68) (62 66 69)))
+
+--> ((#<NOTE C4> #<NOTE E4> #<NOTE G4>) (#<NOTE Db4> #<NOTE F4> #<NOTE Ab4>)
+ (#<NOTE D4> #<NOTE F#4> #<NOTE A4>))"
+  
+  (mapcar (alexandria:rcurry #'%pitch-spell
+			     penalties
+			     parsimony)
+	  chord-seq))
+
 (defun pitch-spell (midi-note-numbers
 		    &key (split 10)
 		      (penalties *default-penalties*)
 		      (parsimony *default-parsimony*))
-  (cond ((null midi-note-numbers) nil)
+  "Spell notes in MIDI-NOTE-NUMBERS, a list of midi note values, Returning a list of `note' objects.
+
+For longer sequences, computing the n-fold cartesian product of all spelling possibilites becomes dramatically time-intensive. Therefore, the sequence is split in blocks of SPLIT elements, which are calculated separately. However, maintaining previous choices of accidentals across blocks is preferred (divergences receive the 'parsimony' penalty). PENALTIES is a hash table with the penalties for various situations, summed when scoring spelling tries (see `make-penalties'). PARSIMONY is a hash table with the chars for the letters from 'a' to 'g' as keys and their preferred initial spelling (:natural, :sharp, :flat, etc.) as values.
+
+Example:
+(pitch-spell '(48 50 52 53 55 57 59 60 61 64 65 68 69))
+
+--> (#<NOTE C3> #<NOTE D3> #<NOTE E3> #<NOTE F3> #<NOTE G3> #<NOTE A3> #<NOTE B3>
+ #<NOTE C4> #<NOTE C#4> #<NOTE E4> #<NOTE F4> #<NOTE Ab4> #<NOTE A4>)"
+
+ (cond ((null midi-note-numbers) nil)
 	((< (length midi-note-numbers) split)
 	 (%pitch-spell midi-note-numbers))
 	(t (loop :for i :below (length midi-note-numbers) :by split
 		 :for split-seq := (subseq midi-note-numbers
 					   i (min (+ i split)
 						  (length midi-note-numbers)))
-		 :for parsimony-ht := parsimony :then (make-parsimony-ht notes)
+		 :for parsimony-ht := parsimony
+		   :then (make-parsimony-ht-from-notes notes)
 		 :for notes := (%pitch-spell split-seq penalties parsimony-ht)
 		 :nconc notes))))
