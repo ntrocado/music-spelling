@@ -200,59 +200,108 @@
 	:when (augmented-interval-p a b)
 	  :count :it))
 
-(defvar *accidental-init-ht*
-  (let ((ht (make-hash-table)))
-    (loop :for letter :across "abcdefg"
-	  :do (setf (gethash letter ht) :natural))
-    ht))
+(defparameter *default-parsimony* (make-hash-table :size 7))
 
 ;;; TODO Still needs optimization...
-(let ((ht (alexandria:copy-hash-table *accidental-init-ht*)))
-  (defun parsimony (note &optional reset)
-    (when reset
-      (setf ht *accidental-init-ht*))
-    (unless (eql (accidental note) (gethash (letter note) ht))
-      (setf (gethash (letter note) ht) (accidental note)))))
+(let ((ht (make-hash-table :size 7)))
+  (defun parsimony (note &optional new-ht)
+    (when new-ht
+      (setf ht new-ht))
+    (if (gethash (letter note) ht)
+	(unless (eql (accidental note) (gethash (letter note) ht))
+	  (setf (gethash (letter note) ht) (accidental note)))
+	;; TODO Yuck... improve this
+	(progn (setf (gethash (letter note) ht) (accidental note))
+	       nil))))
 
-(defun count-penalties (notes-vec best-score-so-far)
-  ;; (parsimony (aref notes-vec 0))
-  (loop :with penalty := (case (accidental (aref notes-vec 0))
-			   ((:sharp :flat) 1)
-			   ((:double-sharp :double-flat) 2.5)
-			   (t 0))
-	:for i :from 1 :below (length notes-vec)
-	:for a := (aref notes-vec (1- i))
-	:for b := (aref notes-vec i)
-	:for interval := (interval-in-semitones a b)
-	;; :for parsimony := (parsimony b)
-	:do (incf penalty
-		  (case (accidental b)
-		    ((:sharp :flat) 1)
-		    ((:double-sharp :double-flat) 2.5)
-		    (t 0)))
-	    ;; :do (when parsimony (incf penalty 1.2))
-	:do (cond ((or (and (= 1 interval)
-			    (eql (accidental b) :flat))
-		       (and (= -1 interval)
-			    (eql (accidental b) :sharp)))
-		   (incf penalty 1.6))
-		  ((> (abs interval) 1)
-		   (incf penalty
-			 (case (interval-quality a b)
-			   (:diminished 1.5)
-			   (:augmented 1.4)
-			   (:other 8)
-			   (t 0)))))
-	:when (>= penalty best-score-so-far) :do (return penalty)
-	  :finally (return penalty)))
+(defun make-parsimony-ht (notes)
+  (let ((ht (make-hash-table :size 7)))
+    (mapc (lambda (note)
+	    (setf (gethash (letter note) ht) (accidental note)))
+	  notes)
+    ht))
 
-;; TODO could be faster with vectors
+(defparameter *default-penalties* (make-hash-table))
+
+(setf (gethash :accidentals *default-penalties*) 1.0
+      (gethash :double-accidentals *default-penalties*) 2.5
+      (gethash :parsimony *default-penalties*) 1.2
+      (gethash :direction *default-penalties*) 1.6
+      (gethash :diminished *default-penalties*) 1.5
+      (gethash :augmented *default-penalties*) 1.4
+      (gethash :other-intervals *default-penalties*) 8.0
+      (gethash :e#-fb-b#-cb *default-penalties*) .5)
+
+(defun count-penalties (notes-vec best-score-so-far
+			&optional (penalties *default-penalties*)
+			  (parsimony-ht *default-parsimony*))
+  (declare (optimize speed)
+	   (type single-float best-score-so-far))
+  
+  (let ((accidentals (gethash :accidentals penalties))
+	(double-accidentals (gethash :double-accidentals penalties))
+	(parsimony (gethash :parsimony penalties))
+	(direction (gethash :direction penalties))
+	(diminished (gethash :diminished penalties))
+	(augmented (gethash :augmented penalties))
+	(other-intervals (gethash :other-intervals penalties))
+	(e#-fb-b#-cb (gethash :e#-fb-b#-cb penalties)))
+    
+    (declare (type single-float accidentals double-accidentals parsimony direction diminished augmented other-intervals e#-fb-b#-cb))
+    
+    (loop :initially (parsimony (aref notes-vec 0)
+				(alexandria:copy-hash-table parsimony-ht))
+	  :with penalty :of-type single-float
+	  ;; penalties for the first note
+	    := (+ (case (accidental (aref notes-vec 0))
+		    ((:sharp :flat) accidentals)
+		    ((:double-sharp :double-flat) double-accidentals)
+		    (t 0s0))
+		  (or (when (parsimony (aref notes-vec 0)) parsimony)
+		      0s0))
+	  
+	  :for i :from 1 :below (length notes-vec)
+	  :for a := (aref notes-vec (1- i))
+	  :for b := (aref notes-vec i)
+	  :for interval :of-type fixnum := (interval-in-semitones a b)
+	  :do (incf penalty
+		    (case (accidental b)
+		      ((:sharp :flat) accidentals)
+		      ((:double-sharp :double-flat) double-accidentals)
+		      (t 0)))
+	  :do (when (parsimony b) (incf penalty parsimony))
+	  :do (cond ((or (and (= 1 interval)
+			      (eql (accidental b) :flat))
+			 (and (= -1 interval)
+			      (eql (accidental b) :sharp)))
+		     (incf penalty direction))
+		    ((> (abs interval) 1)
+		     (incf penalty
+			   (case (interval-quality a b)
+			     (:diminished diminished)
+			     (:augmented augmented)
+			     (:other other-intervals)
+			     (t 0)))))
+	  :do (when (or (and (char= (letter b) #\c)
+			     (accidental b) :flat)
+			(and (char= (letter b) #\b)
+			     (accidental b) :sharp)
+			(and (char= (letter b) #\f)
+			     (accidental b) :flat)
+			(and (char= (letter b) #\e)
+			     (accidental b) :sharp))
+		(incf penalty e#-fb-b#-cb))
+	  :when (>= penalty best-score-so-far) :do (return penalty)
+	    :finally (return penalty))))
+
 ;; TODO avoid mixing accidentals (maybe covered by other constrains already)
 (defun score-spelling (notes best-score-so-far penalties parsimony)
   (count-penalties (coerce (delete :rest notes) 'vector)
 		   best-score-so-far
 		   penalties
 		   parsimony))
+
+;; TODO could be more efficient with vectors?
 (defun map-product (function list &rest more-lists)
   "Non-collecting version of the function in Alexandria."
   (labels ((%map-product (f lists)
@@ -265,27 +314,43 @@
                             one)))))
     (%map-product (alexandria:ensure-function function) (cons list more-lists))))
 
-(defun pitch-spell (midi-note-numbers)
+(defun %pitch-spell (midi-note-numbers
+		    &optional (penalties *default-penalties*)
+		      (parsimony *default-parsimony*))
   (if (= 1 (length midi-note-numbers))
       (list (first (possible-spellings (car midi-note-numbers))))
-      (let ((best-score 1000)
+      (let ((best-score 1000s0)
 	    (best-solution nil))
-	(apply #'map-product (lambda (&rest vals)
-			       (let ((score (score-spelling vals best-score)))
-				 (when (< score best-score)
-				   (setf best-solution vals
-					 best-score score))))
+	(apply #'map-product
+	       (lambda (&rest vals)
+		 (let ((score (score-spelling vals best-score
+					      penalties
+					      parsimony)))
+		   (when (< score best-score)
+		     (setf best-solution vals
+			   best-score score))))
 	       (mapcar #'possible-spellings midi-note-numbers))
 	(values best-solution best-score))))
 
 (defun pitch-spell-chords (chord-seq)
-  (mapcar #'pitch-spell chord-seq))
+  (let ((options (alexandria:copy-hash-table *default-penalties*)))
+    (setf (gethash :direction options) 0
+	  (gethash :diminished options) .2
+	  (gethash :augmented options) .2
+	  (gethash :parsimony options) 5)
+    (mapcar (alexandria:rcurry #'%pitch-spell options) chord-seq)))
 
-;; Cheat by spliting the input list in two
-(defun pitch-spell-split (midi-note-numbers &optional (len 8))
+(defun pitch-spell (midi-note-numbers
+		    &key (split 10)
+		      (penalties *default-penalties*)
+		      (parsimony *default-parsimony*))
   (cond ((null midi-note-numbers) nil)
-	((< (length midi-note-numbers) len)
-	 (pitch-spell midi-note-numbers))
-	(t (append (pitch-spell (subseq midi-note-numbers 0 len))
-		   (pitch-spell-split (subseq midi-note-numbers len))))))
-
+	((< (length midi-note-numbers) split)
+	 (%pitch-spell midi-note-numbers))
+	(t (loop :for i :below (length midi-note-numbers) :by split
+		 :for split-seq := (subseq midi-note-numbers
+					   i (min (+ i split)
+						  (length midi-note-numbers)))
+		 :for parsimony-ht := parsimony :then (make-parsimony-ht notes)
+		 :for notes := (%pitch-spell split-seq penalties parsimony-ht)
+		 :nconc notes))))
