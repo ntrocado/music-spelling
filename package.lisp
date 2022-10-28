@@ -5,13 +5,14 @@
 	   #:accidental
 	   #:octave
 	   #:rest-p
-	   #:pitch-spell
-	   #:pitch-spell-chords
 	   #:make-penalties
-	   #:*natural-parsimony*
+	   #:*default-penalties*
 	   #:*chord-penalties*
 	   #:*default-parsimony*
-	   #:make-parsimony-ht-from-notes))
+   	   #:*natural-parsimony*
+	   #:make-parsimony-ht-from-notes
+	   #:pitch-spell
+	   #:pitch-spell-chords))
 
 (defpackage #:rhythm-spelling
   (:use #:cl)
