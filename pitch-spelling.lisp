@@ -205,14 +205,14 @@
 ;;; TODO Still needs optimization...
 (let ((ht (make-hash-table :size 7)))
   (defun parsimony (note &optional new-ht)
-    (when new-ht
-      (setf ht new-ht))
-    (if (gethash (letter note) ht)
-	(unless (eql (accidental note) (gethash (letter note) ht))
-	  (setf (gethash (letter note) ht) (accidental note)))
-	;; TODO Yuck... improve this
-	(progn (setf (gethash (letter note) ht) (accidental note))
-	       nil))))
+    (if new-ht
+	(setf ht new-ht)
+	(if (gethash (letter note) ht)
+	    (unless (eql (accidental note) (gethash (letter note) ht))
+	      (setf (gethash (letter note) ht) (accidental note)))
+	    ;; TODO Yuck... improve this
+	    (progn (setf (gethash (letter note) ht) (accidental note))
+		   nil)))))
 
 (defun make-parsimony-ht (notes)
   (let ((ht (make-hash-table :size 7)))
