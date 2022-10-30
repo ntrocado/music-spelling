@@ -112,11 +112,19 @@
   (- (mod (abs-interval-in-semitones note1 note2) 12)
      (major-or-perfect-interval-size (interval-number note1 note2))))
 
+(defun funny-interval-p (note1 note2)
+  (when (or (and (eql (accidental note1) :double-flat)
+		 (member (accidental note2) '(:sharp :double-sharp)))
+	    (and (eql (accidental note1) :double-sharp)
+		 (member (accidental note2) '(:flat :double-flat))))
+    :other))
+
 (let ((previous-results (make-hash-table :test 'equal)))
   (defun interval-quality (note1 note2)
     (or (gethash (list note1 note2) previous-results)
 	(setf (gethash (list note1 note2) previous-results)
-	      (or (let ((distance (distance-from-major-or-perfect note1 note2)))
+	      (or (funny-interval-p note1 note2)
+		  (let ((distance (distance-from-major-or-perfect note1 note2)))
 		    (if (member (mod (interval-number note1 note2) 7) '(1 4 5))
 			(case distance
 			  (-1 :diminished)
@@ -136,7 +144,7 @@
 
 (defun augmented-interval-p (note1 note2)
   (eql (interval-quality note1 note2)
-	 :augmented))
+       :augmented))
 
 ;; 60 b# c dbb
 ;; 61 (bx) c# db
