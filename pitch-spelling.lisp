@@ -249,7 +249,7 @@
 	  (gethash :diminished ht) 1.5
 	  (gethash :augmented ht) 1.4
 	  (gethash :other-intervals ht) 8.0
-	  (gethash :e#-fb-b#-cb ht) .5)
+	  (gethash :e#-fb-b#-cb ht) .4)
     ht))
 
 (defparameter *default-penalties* (make-default-penalties))
@@ -419,7 +419,7 @@ Example:
 	  chord-seq))
 
 (defun pitch-spell (midi-note-numbers
-		    &key (split 10)
+		    &key (split 9)
 		      (penalties *default-penalties*)
 		      (parsimony *default-parsimony*))
   "Spell notes in MIDI-NOTE-NUMBERS, a list of midi note values, Returning a list of `note' objects.
