@@ -232,6 +232,11 @@
 	    (progn (setf (gethash (letter note) ht) (accidental note))
 		   nil)))))
 
+(defun make-parsimony (&rest letter-accidental-pairs)
+  "Make a parsimony hash table from LETTER-ACCIDENTAL-PAIRS, each a cons of a `pitch-letter' char and on of :natural, :flat, :sharp, :double-flat or :double-sharp."
+  (mapc (lambda (pair) (assert (pitch-letter-p (car pair)))) letter-accidental-pairs)
+  (alexandria:alist-hash-table letter-accidental-pairs))
+
 (defun make-parsimony-ht-from-notes (notes)
   "Returns a parsimony hash table produced from the accidentals in the list of `note' objects NOTES."
   (let ((ht (make-hash-table :size 7)))

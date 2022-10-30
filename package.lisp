@@ -10,6 +10,7 @@
 	   #:*chord-penalties*
 	   #:*default-parsimony*
    	   #:*natural-parsimony*
+	   #:make-parsimony
 	   #:make-parsimony-ht-from-notes
 	   #:pitch-spell
 	   #:pitch-spell-chords
