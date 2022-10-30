@@ -80,7 +80,7 @@
 	:for onset := offset :then (+ offset (- end d))
 	:do (multiple-value-bind (int-part frac-part)
 		(int-frac d)
-	      
+
 	      (alexandria:if-let (post-half-bar (post-half-bar d onset beats-per-bar))
 		(push (ties p d (- d post-half-bar) beats-per-bar onset)
 		      result)
@@ -120,6 +120,6 @@
 		   (push (list p (/ 4 int-part))
 			 result))
 		  
-		  (t (error "Can't spell ~a." d))))
+		  (t (error "Can't spell ~a." d)))))
 	      
-	:finally (return (alexandria:flatten (nreverse result))))))
+	:finally (return (alexandria:flatten (nreverse result)))))
