@@ -354,8 +354,8 @@
 (defparameter *natural-parsimony* (make-natural-parsimony))
 
 
-(defun make-penalties (accidentals augmented diminished direction double-accidentals
-		       e#-fb-b#-cb other-intervals parsimony)
+(defun make-penalties (&key accidentals augmented diminished direction double-accidentals
+		       e#-fb-b#-cb other-intervals parsimony (default *default-penalties*))
   "Returns a hash table with the following cumulative penalties used in pitch scoring:
 
 ACCIDENTALS: note is sharp or flat;
@@ -367,18 +367,22 @@ E#-Fb-B#-Cb: specific penalty for these spellings;
 OTHER-INTERVALS: intervals between two consecutive notes other than major, minor, perfect, augmented or diminished (e.g. doubly augmented interval);
 PARSIMONY: occurrence of an accidental different from previous used ones (or pre-defined on a given parsimony table).
 
-Penalty values must be single floats. They are summed when scoring each spelling try. A lower score is better."
-  
-  (let ((ht (make-hash-table :size 8)))
-    (setf (gethash :accidentals ht) accidentals
-	  (gethash :double-accidentals ht) double-accidentals
-	  (gethash :parsimony ht) parsimony
-	  (gethash :direction ht) direction
-	  (gethash :diminished ht) diminished
-	  (gethash :augmented ht) augmented
-	  (gethash :other-intervals ht) other-intervals
-	  (gethash :e#-fb-b#-cb ht) e#-fb-b#-cb)
-    ht))
+Unsupplied values are taken from DEFAULT.
+
+Penalty values are summed when scoring each spelling try. A lower score is better."
+  (macrolet ((supplied-or-take-default (val)
+	       `(or (when ,val (coerce ,val 'single-float))
+		    (gethash (alexandria:make-keyword (quote ,val)) default))))
+   (let ((ht (make-hash-table :size 8)))
+     (setf (gethash :accidentals ht) (supplied-or-take-default accidentals)
+	   (gethash :double-accidentals ht) (supplied-or-take-default double-accidentals) 
+	   (gethash :parsimony ht) (supplied-or-take-default parsimony)
+	   (gethash :direction ht) (supplied-or-take-default direction)
+	   (gethash :diminished ht) (supplied-or-take-default diminished)
+	   (gethash :augmented ht) (supplied-or-take-default augmented)
+	   (gethash :other-intervals ht) (supplied-or-take-default other-intervals)
+	   (gethash :e#-fb-b#-cb ht) (supplied-or-take-default e#-fb-b#-cb))
+     ht)))
 
 (defun pitch-spell-chords (chord-seq
 			   &key (penalties *chord-penalties*)
