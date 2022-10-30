@@ -222,9 +222,9 @@
 
 ;;; TODO Still needs optimization...
 (let ((ht (make-hash-table :size 7)))
-  (defun parsimony (note &optional new-ht)
-    (if new-ht
-	(setf ht new-ht)
+  (defun parsimony (note)
+    (if (hash-table-p note) ;reset by sending a new hash table
+	(setf ht note)
 	(if (gethash (letter note) ht)
 	    (unless (eql (accidental note) (gethash (letter note) ht))
 	      (setf (gethash (letter note) ht) (accidental note)))
@@ -281,10 +281,10 @@
 	(e#-fb-b#-cb (gethash :e#-fb-b#-cb penalties)))
     
     (declare (type single-float accidentals double-accidentals parsimony direction diminished augmented other-intervals e#-fb-b#-cb))
+
+    (parsimony (alexandria:copy-hash-table parsimony-ht))
     
-    (loop :initially (parsimony (aref notes-vec 0)
-				(alexandria:copy-hash-table parsimony-ht))
-	  :with penalty :of-type single-float
+    (loop :with penalty :of-type single-float
 	  ;; penalties for the first note
 	    := (let ((first-note (aref notes-vec 0)))
 		 (+ (case (accidental first-note)
