@@ -1,4 +1,4 @@
-(in-package :pitch-spelling)
+(in-package :music-spelling)
 
 (defun pitch-letter-p (letter)
   (find letter "abcdefg" :test 'char=))

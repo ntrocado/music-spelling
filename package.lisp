@@ -1,4 +1,4 @@
-(defpackage #:pitch-spelling
+(defpackage #:music-spelling
   (:use #:cl)
   (:export #:note
 	   #:letter
@@ -12,11 +12,8 @@
    	   #:*natural-parsimony*
 	   #:make-parsimony-ht-from-notes
 	   #:pitch-spell
-	   #:pitch-spell-chords))
+	   #:pitch-spell-chords
 
-(defpackage #:rhythm-spelling
-  (:use #:cl)
-  (:import-from #:pitch-spelling rest-p)
-  (:export #:metric-subdivision
+	   #:metric-subdivision
 	   #:min-subdivision-quantize
 	   #:rhythm-spell))

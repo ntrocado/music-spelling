@@ -1,4 +1,4 @@
-(in-package #:rhythm-spelling)
+(in-package #:music-spelling)
 
 (defun ends-a-beat-p (end)
   (zerop (nth-value 1 (truncate end))))
