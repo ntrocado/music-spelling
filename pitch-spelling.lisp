@@ -329,9 +329,7 @@
                             one)))))
     (%map-product (alexandria:ensure-function function) (cons list more-lists))))
 
-(defun %pitch-spell (midi-note-numbers
-		    &optional (penalties *default-penalties*)
-		      (parsimony *default-parsimony*))
+(defun %pitch-spell (midi-note-numbers penalties parsimony)
   (if (= 1 (length midi-note-numbers))
       (list (first (possible-spellings (car midi-note-numbers))))
       (let ((best-score 1000s0)
@@ -415,7 +413,7 @@ Example:
 
  (cond ((null midi-note-numbers) nil)
 	((< (length midi-note-numbers) split)
-	 (%pitch-spell midi-note-numbers))
+	 (%pitch-spell midi-note-numbers penalties parsimony))
 	(t (loop :for i :below (length midi-note-numbers) :by split
 		 :for split-seq := (subseq midi-note-numbers
 					   i (min (+ i split)
