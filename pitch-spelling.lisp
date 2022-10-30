@@ -438,5 +438,9 @@ Example:
 						  (length midi-note-numbers)))
 		 :for parsimony-ht := parsimony
 		   :then (make-parsimony-ht-from-notes notes)
-		 :for notes := (%pitch-spell split-seq penalties parsimony-ht)
-		 :nconc notes))))
+		 :for (notes score) := (multiple-value-list (%pitch-spell split-seq
+									  penalties
+									  parsimony-ht))
+		 :nconc notes :into result-notes
+		 :sum score :into result-score
+		 :finally (return (values result-notes result-score))))))
