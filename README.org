@@ -1,16 +1,96 @@
 * Music spelling
-A Common Lisp library for dealing with enharmonic pitches and notating rhythms with dots, ties, and beams.
+A Common Lisp library for automatically spelling pitches and rhythms.
 
-*This is a work in progress.*
+Pitch spelling uses an algorithm appropriate for non-tonal contexts. It attempts to:
+- avoid unnecessary accidentals;
+- avoid diminished and augmented intervals between consecutive notes;
+- avoid spellings such as E♯, F♭, B♯, C♭;
+- avoid ascending with flats or descending with sharps.
 
-* TODO
-** pitches
-- algorithm for chords
-- parsimony + penalty for respelling
-- segmentation
-** rhythms
-- tuplets
-- compound time
+Each of these situations carries a penalty value, which can be configured.
+
+Rhythm spelling takes care of ties and dots, constraining durations to meter, and following the best practices for sustained notes across beats (as found in Gould, E. (2011). /Behind bars: The definitive guide to music notation/. Faber Music.).
+
+* Usage
+** Pitches
+~pitch-spell~ takes a list of midi note numbers and returns a list of ~note~ objects.
+
+For example:
+#+begin_src lisp
+(pitch-spell '(48 50 52 53 55 57 59 60 61 64 65 68 69))
+
+--> (#<NOTE C3> #<NOTE D3> #<NOTE E3> #<NOTE F3> #<NOTE G3> #<NOTE A3> #<NOTE B3>
+ #<NOTE C4> #<NOTE C#4> #<NOTE E4> #<NOTE F4> #<NOTE Ab4> #<NOTE A4>)
+#+end_src
+
+Penalties for unwanted cases are configured by default in the hash table ~*default-penalties*~ with the following contents:
+#+begin_src
+:ACCIDENTALS = 1.0 
+:AUGMENTED = 1.4 
+:DIMINISHED = 1.5 
+:DIRECTION = 1.6 
+:DOUBLE-ACCIDENTALS = 2.5 
+:|E#-FB-B#-CB| = 0.4 
+:OTHER-INTERVALS = 8.0 
+:PARSIMONY = 1.2 
+#+end_src
+These reflect my preferences, but this is much a matter of personal choice.
+
+Different preferences can also be followed:
+#+begin_src lisp
+(pitch-spell '(60 63 66 69 73 74) :penalties (make-penalties :double-accidentals 1.2))
+
+--> (#<NOTE C4> #<NOTE Eb4> #<NOTE Gb4> #<NOTE Bbb4> #<NOTE Db5> #<NOTE D5>)
+#+end_src
+Which relaxed the avoidance of double-flats (from 2.5 to 1.2). Compare to the default:
+#+begin_src lisp
+(pitch-spell '(60 63 66 69 73 74))
+
+--> (#<NOTE C4> #<NOTE Eb4> #<NOTE F#4> #<NOTE A4> #<NOTE C#5> #<NOTE D5>)
+#+end_src
+
+/Parsimony/ is the spelling of a note that changes a previously used accidental. For example, G♭ following a G♯. It can also be used to declare a preference for some specific note spellings, or enforce them strictly by simultaneously ramping up the ~:parsimony~ penalty. Like in the following example:
+#+begin_src lisp
+(pitch-spell '(60 61 63 67 68 70)
+	     :parsimony (make-parsimony '(#\d . :flat)
+					'(#\g . :sharp)
+					'(#\a . :natural)
+					'(#\b . :flat))
+	     :penalties (make-penalties :parsimony 10))
+
+--> (#<NOTE C4> #<NOTE Db4> #<NOTE Eb4> #<NOTE Fx4> #<NOTE G#4> #<NOTE Bb4>)
+#+end_src
+
+For chords, use ~pitch-spell-chords~:
+#+begin_src lisp
+(pitch-spell-chords '((60 64 67) (61 65 68) (62 66 69)))
+
+--> ((#<NOTE C4> #<NOTE E4> #<NOTE G4>) (#<NOTE Db4> #<NOTE F4> #<NOTE Ab4>)
+ (#<NOTE D4> #<NOTE F#4> #<NOTE A4>))
+#+end_src
+Chords follow a different set of rules, expressed by default in ~*chord-penalties*~.
+
+** Rhythms
+~rhythm-spell~ takes a list of pitches (midi notes, ~note~ objects, or other representation) and a list of durations, expressed as fractions or multiples of one beat, returning a list with notes, durations as reciprocals of the beat length, and dots (~:dot~ after the affected note) and ties (~:tie~ between tied notes) where appropriate. The format is convenient e.g. for exporting to Lilypond format.
+
+For example:
+#+begin_src lisp
+(rhythm-spell (pitch-spell '(60 62 65 66 68)) '(1.5 1.75 0.5 2 .25))
+
+--> (#<NOTE C4> 4 :DOT #<NOTE D4> 8 :TIE #<NOTE D4> 4 :TIE #<NOTE D4> 16 #<NOTE F4>
+ 8 #<NOTE F#4> 16 :TIE #<NOTE F#4> 4 :DOT :DOT #<NOTE G#4> 16)
+#+end_src
+
+* Current limitations
+** Pitches
+- algorithm doesn't provide an automatic segmentation across different phrases
+** Rhythms
+- no tuplets
+- no compound time
+- meters other than 4/4 probably produce incorrect results
+
+* License
+Apache 2.0
 
 * Author
 [[https://nunotrocado.com][Nuno Trocado]]
