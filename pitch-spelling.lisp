@@ -259,7 +259,7 @@
     (setf (gethash :direction ht) 0.0
 	  (gethash :diminished ht) 1.0
 	  (gethash :augmented ht) 1.0
-	  (gethash :penalties ht) 1.1)
+	  (gethash :parsimony ht) 1.1)
     ht))
 
 (defparameter *chord-penalties* (make-chord-penalties)
