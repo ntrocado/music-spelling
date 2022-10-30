@@ -245,7 +245,7 @@
     (setf (gethash :accidentals ht) 1.0
 	  (gethash :double-accidentals ht) 2.5
 	  (gethash :parsimony ht) 1.2
-	  (gethash :direction ht) 1.6
+	  (gethash :direction ht) 1.5
 	  (gethash :diminished ht) 1.5
 	  (gethash :augmented ht) 1.4
 	  (gethash :other-intervals ht) 8.0
