@@ -409,7 +409,7 @@ Penalty values are summed when scoring each spelling try. A lower score is bette
 
 (defun pitch-spell-chords (chord-seq
 			   &key (penalties *chord-penalties*)
-			     (parsimony *natural-parsimony*))
+			     (parsimony *default-parsimony*))
   "Spell chords in CHORD-SEQ, a list of chords, where each chord is a list of midi note values, returning a similarly structured list with the values replaced by `note' objects.
 PENALTIES is a hash table with the penalty values for various situations, summed when scoring spelling tries (see `make-penalties'). PARSIMONY is a hash table with the chars for the letters from 'a' to 'g' as keys and their preferred initial spelling (:natural, :sharp, :flat, etc.) as values.
 
