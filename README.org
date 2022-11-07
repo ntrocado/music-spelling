@@ -11,6 +11,11 @@ Each of these situations carries a penalty value, which can be configured.
 
 Rhythm spelling takes care of ties and dots, constraining durations to meter, and following the best practices for sustained notes across beats (as found in Gould, E. (2011). /Behind bars: The definitive guide to music notation/. Faber Music.).
 
+* Install
+#+begin_src lisp
+(ql:quickload "music-spelling")
+#+end_src
+
 * Usage
 ** Pitches
 ~pitch-spell~ takes a list of midi note numbers and returns a list of ~note~ objects.
