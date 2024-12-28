@@ -17,4 +17,7 @@
 
 	   #:metric-subdivision
 	   #:min-subdivision-quantize
-	   #:rhythm-spell))
+	   #:rhythm-spell
+	   
+	   #:*default-octave*
+	   #:parse-text))

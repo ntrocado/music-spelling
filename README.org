@@ -11,6 +11,8 @@ Each of these situations carries a penalty value, which can be configured.
 
 Rhythm spelling takes care of ties and dots, constraining durations to meter, and following the best practices for sustained notes across beats (as found in Gould, E. (2011). /Behind bars: The definitive guide to music notation/. Faber Music.).
 
+Finally, this library also includes functionality to ease music entry in a textual notation format.
+
 * Install
 #+begin_src lisp
 (ql:quickload "music-spelling")
@@ -85,6 +87,9 @@ For example:
 --> (#<NOTE C4> 4 :DOT #<NOTE D4> 8 :TIE #<NOTE D4> 4 :TIE #<NOTE D4> 16 #<NOTE F4>
  8 #<NOTE F#4> 16 :TIE #<NOTE F#4> 4 :DOT :DOT #<NOTE G#4> 16)
 #+end_src
+
+** Text notation
+~parse-text~ converts between a Lilypond-inspired text notation format and either a list of midi note values and a list of durations as fractions/multiples of a beat, or a list of ~note~ objects. See the docstring for syntax and examples.
 
 * Current limitations
 ** Pitches
